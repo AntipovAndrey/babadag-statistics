@@ -375,9 +375,12 @@ button.ghost:hover {
 }
 
 .row-h .fill {
+  display: block;
   height: 100%;
+  min-width: 6px;
   background: var(--bar-h);
   border-radius: 6px;
+  transition: width 0.25s ease;
 }
 
 .row-h .n {
