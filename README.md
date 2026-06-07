@@ -5,6 +5,8 @@ total takeoffs, reserve‑parachute deployments, and a click‑to‑zoom day / m
 chart with date filters. It reads your flights from the same place the official SHM
 mobile app does.
 
+![The Babadağ Flight Stats report — KPI cards, a click‑to‑zoom takeoffs‑per‑year chart, and launch‑area / landing‑outcome breakdowns](docs/screenshot.png)
+
 ## 1. Install Node.js
 
 You only need **Node.js** (version 18 or newer). If you don't have it,
