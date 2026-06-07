@@ -1,0 +1,28 @@
+# Dependencies / OS / logs
+node_modules/
+*.log
+.DS_Store
+
+# IDE / editor project files (machine-specific)
+.idea/
+*.iml
+.vscode/
+
+# Agent / browser scratch artifacts
+.playwright-mcp/
+.output.txt
+.background_output_*.txt
+*.png
+
+# …but keep the screenshot shown in the README.
+!docs/screenshot.png
+
+# Your personal data — created locally on first run, never committed.
+# (Cached flight history + metadata can contain personal info.)
+data/
+
+# The bundled SHM Android app, used only for reverse-engineering research.
+shm.xapk
+
+# Local-only reverse-engineering notes (kept on disk, never committed).
+technical-research1.md

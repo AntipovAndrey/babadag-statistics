@@ -1,0 +1,26 @@
+{
+  "name": "babadag-stat",
+  "version": "1.0.0",
+  "description": "CLI that pulls your personal Babadag/Fethiye SHM paragliding flight history and generates a local SPA stats report (takeoffs, parachutes, day/month/year histograms with filters).",
+  "type": "commonjs",
+  "bin": {
+    "babadag-stat": "bin/babadag-stat.js"
+  },
+  "scripts": {
+    "start": "node bin/babadag-stat.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "paragliding",
+    "babadag",
+    "oludeniz",
+    "fethiye",
+    "shm",
+    "stats",
+    "cli"
+  ],
+  "license": "MIT",
+  "dependencies": {}
+}

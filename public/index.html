@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Babadağ — Flight Stats</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🪂%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon">🪂</span>
+        <div>
+          <h1>Babadağ Flight Stats</h1>
+          <p class="subtitle" id="subtitle">Personal paragliding history — Fethiye / Ölüdeniz</p>
+        </div>
+      </div>
+      <div class="meta" id="meta"></div>
+    </header>
+
+    <main id="app">
+      <section class="kpis" id="kpis" aria-label="Key figures"></section>
+
+      <section class="card controls">
+        <div class="control">
+          <label for="start">From</label>
+          <input type="date" id="start" />
+        </div>
+        <div class="control">
+          <label for="end">To</label>
+          <input type="date" id="end" />
+        </div>
+        <button id="reset" class="ghost">Reset</button>
+      </section>
+
+      <section class="card chart-card">
+        <div class="card-head">
+          <div class="chart-title">
+            <h2>Takeoffs over time</h2>
+            <nav class="crumbs" id="crumbs" aria-label="Zoom level"></nav>
+          </div>
+          <span class="hint" id="chartHint"></span>
+        </div>
+        <div class="chart" id="chart"></div>
+      </section>
+
+      <div class="grid-2">
+        <section class="card">
+          <div class="card-head"><h2>Takeoffs by launch area</h2></div>
+          <div id="areas" class="bars-h"></div>
+        </section>
+        <section class="card">
+          <div class="card-head">
+            <h2>Landing outcomes</h2>
+            <span class="hint">click to filter flights</span>
+          </div>
+          <div id="landing" class="bars-h"></div>
+        </section>
+      </div>
+
+      <section class="card">
+        <div class="card-head"><h2>Flights</h2><span class="hint" id="tableHint"></span></div>
+        <div class="table-wrap">
+          <table id="flightsTable">
+            <thead>
+              <tr><th>Date</th><th>Launch area</th><th>Landing</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <p class="empty" id="empty" hidden></p>
+    </main>
+
+    <footer class="footer">
+      <span id="footerText">Data relayed locally by <code>babadag-stat</code>.</span>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
