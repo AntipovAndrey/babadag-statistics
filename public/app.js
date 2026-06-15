@@ -447,6 +447,356 @@ function wireControls() {
   });
 }
 
+/* ----------------------- share / screenshot cards ------------------------ */
+
+// Compact, screenshot-ready stat cards for social media. Each variant focuses
+// on a different angle of the data; user picks the one to share/screenshot.
+// All cards have the same fixed size so they screenshot cleanly.
+
+const SHARE_VARIANTS = [
+  { id: 'overview', title: 'Overview' },
+  { id: 'areas', title: 'Top launches' },
+  { id: 'years', title: 'By year' },
+  { id: 'safety', title: 'Safety' },
+];
+
+const shareState = { variant: 'overview', pilot: '' };
+
+function shareDateRange(rows) {
+  if (!rows.length) return '—';
+  const a = rows[0].iso;
+  const b = rows[rows.length - 1].iso;
+  return a === b ? a : `${a} → ${b}`;
+}
+
+// Shared "chrome" around every share card: brand badge, pilot, date range.
+function shareFrame(bodyHtml, opts) {
+  const pilot = (opts && opts.pilot) || shareState.pilot || '';
+  const rangeText = (opts && opts.range) || '';
+  return (
+    `<div class="sc-bg">` +
+    `  <div class="sc-top">` +
+    `    <div class="sc-brand">` +
+    `      <span class="sc-brand-icon" aria-hidden="true">🪂</span>` +
+    `      <div class="sc-brand-text">` +
+    `        <div class="sc-brand-title">Takeoffs from Babadağ</div>` +
+    `        <div class="sc-brand-sub">Fethiye · Ölüdeniz · Türkiye</div>` +
+    `      </div>` +
+    `    </div>` +
+    (pilot ? `<div class="sc-pilot" title="${pilot}">${pilot}</div>` : '') +
+    `  </div>` +
+    `  <div class="sc-body">${bodyHtml}</div>` +
+    `  <div class="sc-foot">` +
+    `    <span class="sc-foot-range">${rangeText}</span>` +
+    `    <span class="sc-foot-tag">#babadag #paragliding</span>` +
+    `  </div>` +
+    `</div>`
+  );
+}
+
+function shareBigStat(value, label, sub) {
+  return (
+    `<div class="sc-big">` +
+    `  <div class="sc-big-value">${value}</div>` +
+    `  <div class="sc-big-label">${label}</div>` +
+    (sub ? `<div class="sc-big-sub">${sub}</div>` : '') +
+    `</div>`
+  );
+}
+
+function shareMini(value, label) {
+  return (
+    `<div class="sc-mini">` +
+    `  <div class="sc-mini-value">${value}</div>` +
+    `  <div class="sc-mini-label">${label}</div>` +
+    `</div>`
+  );
+}
+
+// Variant 1 — Overview: lifetime totals, big takeoff number front and centre.
+function renderShareOverview(rows) {
+  const takeoffs = rows.length;
+  const years = new Set(rows.map((r) => r.year)).size;
+  const areas = new Set(rows.map((r) => r.area)).size;
+  const reliable = rows.filter((r) => r.landingType === 'reliable').length;
+  const firstYear = rows.length ? rows[0].year : '—';
+  const lastYear = rows.length ? rows[rows.length - 1].year : '—';
+
+  const body =
+    shareBigStat(takeoffs, 'Takeoffs', `from ${firstYear} to ${lastYear}`) +
+    `<div class="sc-mini-row">` +
+    shareMini(years, `Year${years === 1 ? '' : 's'} flying`) +
+    shareMini(areas, `Launch area${areas === 1 ? '' : 's'}`) +
+    shareMini(reliable, 'Reliable landings') +
+    `</div>`;
+
+  return shareFrame(body, { range: shareDateRange(rows) });
+}
+
+// Variant 2 — Top launch areas: bar list of where takeoffs happened.
+function renderShareAreas(rows) {
+  const counts = new Map();
+  for (const r of rows) counts.set(r.area, (counts.get(r.area) || 0) + 1);
+  const list = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const max = list.length ? list[0][1] : 1;
+  const totalTop = list.reduce((s, [, n]) => s + n, 0);
+
+  const bars = list.length
+    ? list
+        .map(([name, n]) => {
+          const pct = Math.round((n / max) * 100);
+          const safe = name.replace(/</g, '&lt;');
+          return (
+            `<div class="sc-row">` +
+            `  <div class="sc-row-name">${safe}</div>` +
+            `  <div class="sc-row-track"><div class="sc-row-fill" style="width:${pct}%"></div></div>` +
+            `  <div class="sc-row-n">${n}</div>` +
+            `</div>`
+          );
+        })
+        .join('')
+    : `<div class="sc-empty">No takeoffs in this range.</div>`;
+
+  const body =
+    `<div class="sc-h">Top launch areas</div>` +
+    `<div class="sc-sub">${rows.length} takeoff${rows.length === 1 ? '' : 's'} · ${counts.size} distinct area${counts.size === 1 ? '' : 's'}</div>` +
+    `<div class="sc-rows">${bars}</div>` +
+    `<div class="sc-foot-note">Top ${list.length} cover ${totalTop} of ${rows.length} flights</div>`;
+
+  return shareFrame(body, { range: shareDateRange(rows) });
+}
+
+// Variant 3 — By year: bar chart of takeoffs per calendar year.
+function renderShareYears(rows) {
+  const counts = new Map();
+  for (const r of rows) counts.set(r.year, (counts.get(r.year) || 0) + 1);
+  const years = [...counts.keys()].sort((a, b) => a - b);
+  const max = years.reduce((m, y) => Math.max(m, counts.get(y)), 1);
+
+  let bestYear = years[0];
+  for (const y of years) if (counts.get(y) > counts.get(bestYear)) bestYear = y;
+  const bestN = bestYear != null ? counts.get(bestYear) : 0;
+
+  const bars = years.length
+    ? years
+        .map((y) => {
+          const n = counts.get(y);
+          const h = Math.max(6, Math.round((n / max) * 220));
+          return (
+            `<div class="sc-yc">` +
+            `  <div class="sc-yc-n">${n}</div>` +
+            `  <div class="sc-yc-bar" style="height:${h}px"></div>` +
+            `  <div class="sc-yc-y">${y}</div>` +
+            `</div>`
+          );
+        })
+        .join('')
+    : `<div class="sc-empty">No takeoffs in this range.</div>`;
+
+  const body =
+    `<div class="sc-h">Takeoffs by year</div>` +
+    `<div class="sc-sub">${rows.length} takeoff${rows.length === 1 ? '' : 's'} across ${years.length} year${years.length === 1 ? '' : 's'}</div>` +
+    `<div class="sc-years">${bars}</div>` +
+    (bestYear != null
+      ? `<div class="sc-foot-note">Best year: <strong>${bestYear}</strong> with <strong>${bestN}</strong> takeoff${bestN === 1 ? '' : 's'}</div>`
+      : '');
+
+  return shareFrame(body, { range: shareDateRange(rows) });
+}
+
+// Variant 4 — Safety: reliable vs reserve deployments.
+function renderShareSafety(rows) {
+  const total = rows.length;
+  const reliable = rows.filter((r) => r.landingType === 'reliable').length;
+  const reserve = rows.filter((r) => r.landingType === 'reserve').length;
+  const other = total - reliable - reserve;
+  const reliablePct = total ? Math.round((reliable / total) * 100) : 0;
+
+  const body =
+    `<div class="sc-h">Safety record</div>` +
+    `<div class="sc-sub">Across ${total} takeoff${total === 1 ? '' : 's'} from Babadağ</div>` +
+    `<div class="sc-safety">` +
+    `  <div class="sc-ring" style="--p:${reliablePct}">` +
+    `    <div class="sc-ring-inner">` +
+    `      <div class="sc-ring-pct">${reliablePct}%</div>` +
+    `      <div class="sc-ring-lbl">reliable landings</div>` +
+    `    </div>` +
+    `  </div>` +
+    `  <div class="sc-safety-stats">` +
+    `    <div class="sc-mini sc-safe-ok"><div class="sc-mini-value">${reliable}</div><div class="sc-mini-label">Reliable</div></div>` +
+    `    <div class="sc-mini ${reserve > 0 ? 'sc-safe-bad' : ''}"><div class="sc-mini-value">${reserve}</div><div class="sc-mini-label">Reserve thrown</div></div>` +
+    `    <div class="sc-mini"><div class="sc-mini-value">${other}</div><div class="sc-mini-label">Other / unspecified</div></div>` +
+    `  </div>` +
+    `</div>`;
+
+  return shareFrame(body, { range: shareDateRange(rows) });
+}
+
+const SHARE_RENDERERS = {
+  overview: renderShareOverview,
+  areas: renderShareAreas,
+  years: renderShareYears,
+  safety: renderShareSafety,
+};
+
+function renderShareCard() {
+  const card = $('#shareCard');
+  if (!card) return;
+  const rows = state.flights.filter((r) => !r.cancelled);
+  card.dataset.variant = shareState.variant;
+  const fn = SHARE_RENDERERS[shareState.variant] || renderShareOverview;
+  card.innerHTML = fn(rows);
+}
+
+function openShareModal() {
+  renderShareCard();
+  const modal = $('#shareModal');
+  if (!modal) return;
+  modal.hidden = false;
+  modal.dataset.open = 'true';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeShareModal() {
+  const modal = $('#shareModal');
+  if (!modal) return;
+  modal.hidden = true;
+  modal.dataset.open = 'false';
+  document.body.style.overflow = '';
+}
+
+// Build an SVG that wraps the share card via <foreignObject>, then rasterise
+// it onto a canvas to get a PNG blob without any external dependencies.
+async function shareCardToBlob() {
+  const card = $('#shareCard');
+  if (!card) return null;
+  const w = 1080;
+  const h = 1080;
+
+  const inlineStyles = [...document.styleSheets]
+    .map((s) => {
+      try {
+        return [...s.cssRules].map((r) => r.cssText).join('\n');
+      } catch (e) {
+        return '';
+      }
+    })
+    .join('\n');
+
+  // Inline the card's HTML inside an SVG foreignObject so we can rasterise it.
+  // The wrapper enforces the export size regardless of how the on-screen
+  // card was scaled to fit the preview area.
+  const html =
+    `<div xmlns="http://www.w3.org/1999/xhtml" class="sc-export" data-variant="${shareState.variant}">` +
+    `<style>${inlineStyles}</style>` +
+    card.outerHTML +
+    `</div>`;
+
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
+    `<foreignObject x="0" y="0" width="${w}" height="${h}">${html}</foreignObject>` +
+    `</svg>`;
+
+  const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+
+  try {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(new Error('Could not rasterise the share card.'));
+      img.src = url;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#0d1117';
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+
+    return await new Promise((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function downloadShareCard() {
+  try {
+    const blob = await shareCardToBlob();
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `babadag-takeoffs-${shareState.variant}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } catch (err) {
+    // Fallback: user can still screenshot the preview.
+    console.warn('Share download failed:', err);
+    alert('Could not generate PNG. You can still screenshot the card.');
+  }
+}
+
+async function copyShareCard() {
+  try {
+    const blob = await shareCardToBlob();
+    if (!blob || !navigator.clipboard || !window.ClipboardItem) {
+      throw new Error('Clipboard image copy is not available in this browser.');
+    }
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    const btn = $('#shareCopy');
+    if (btn) {
+      const prev = btn.textContent;
+      btn.textContent = '✓ Copied';
+      setTimeout(() => (btn.textContent = prev), 1500);
+    }
+  } catch (err) {
+    console.warn('Share copy failed:', err);
+    alert('Could not copy the image. Try Download PNG or take a screenshot.');
+  }
+}
+
+function wireShare(meta) {
+  shareState.pilot = (meta && meta.pilot) || (state.flights[0] && state.flights[0].pilot) || '';
+
+  const openBtn = $('#shareBtn');
+  if (openBtn) openBtn.addEventListener('click', openShareModal);
+
+  const modal = $('#shareModal');
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target && e.target.dataset && e.target.dataset.close) closeShareModal();
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal && modal.dataset.open === 'true') closeShareModal();
+  });
+
+  const tabs = $('#shareTabs');
+  if (tabs) {
+    tabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('button.share-tab');
+      if (!btn) return;
+      shareState.variant = btn.dataset.variant;
+      for (const t of tabs.querySelectorAll('.share-tab')) {
+        t.classList.toggle('active', t === btn);
+      }
+      renderShareCard();
+    });
+  }
+
+  const dl = $('#shareDownload');
+  if (dl) dl.addEventListener('click', downloadShareCard);
+  const cp = $('#shareCopy');
+  if (cp) cp.addEventListener('click', copyShareCard);
+}
+
 /* -------------------------------- boot ----------------------------------- */
 
 (async function init() {
@@ -455,6 +805,7 @@ function wireControls() {
     renderMeta(meta);
     setDefaultRange();
     wireControls();
+    wireShare(meta);
     renderAll();
     document.body.dataset.ready = 'true';
   } catch (err) {

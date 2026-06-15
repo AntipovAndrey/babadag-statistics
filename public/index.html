@@ -16,8 +16,50 @@
           <p class="subtitle" id="subtitle">Personal paragliding history — Fethiye / Ölüdeniz</p>
         </div>
       </div>
-      <div class="meta" id="meta"></div>
+      <div class="topbar-right">
+        <button id="shareBtn" class="share-btn" type="button" aria-haspopup="dialog" aria-controls="shareModal">
+          <span aria-hidden="true">📣</span>
+          <span>Share stats</span>
+        </button>
+        <div class="meta" id="meta"></div>
+      </div>
     </header>
+
+    <!-- Share modal: screenshot-ready stat cards -->
+    <div id="shareModal" class="share-modal" hidden role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+      <div class="share-backdrop" data-close="1"></div>
+      <div class="share-dialog" role="document">
+        <div class="share-head">
+          <div>
+            <h2 id="shareModalTitle">Share your Babadağ takeoffs</h2>
+            <p class="share-sub">Pick a card, then screenshot it (or download as PNG) and post it anywhere.</p>
+          </div>
+          <button class="share-close" data-close="1" type="button" aria-label="Close">×</button>
+        </div>
+
+        <div class="share-tabs" id="shareTabs" role="tablist" aria-label="Card style">
+          <button class="share-tab active" role="tab" data-variant="overview">Overview</button>
+          <button class="share-tab" role="tab" data-variant="areas">Top launches</button>
+          <button class="share-tab" role="tab" data-variant="years">By year</button>
+          <button class="share-tab" role="tab" data-variant="safety">Safety</button>
+        </div>
+
+        <div class="share-stage">
+          <div class="share-card-wrap">
+            <div id="shareCard" class="share-card" aria-live="polite"></div>
+          </div>
+          <div class="share-hint">
+            Tip: take a screenshot of this card, or use <strong>Download PNG</strong> below.
+          </div>
+        </div>
+
+        <div class="share-actions">
+          <button id="shareDownload" class="share-action primary" type="button">⬇ Download PNG</button>
+          <button id="shareCopy" class="share-action" type="button">📋 Copy image</button>
+          <button class="share-action ghost" data-close="1" type="button">Close</button>
+        </div>
+      </div>
+    </div>
 
     <main id="app">
       <section class="kpis" id="kpis" aria-label="Key figures"></section>
